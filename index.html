@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Three-Body Problem Explorer</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app-container">
+        <!-- Canvas for 2D visualization -->
+        <div id="canvas-container">
+            <canvas id="simulation-canvas"></canvas>
+            <!-- bottom control bar removed; time scrub moved to sidebar -->
+            <div id="canvas-overlay">
+                <button id="analysis-toggle" class="analysis-toggle">Physics Lab</button>
+                <h2>Three-Body Problem</h2>
+                <p>Drag to pan • Scroll to zoom</p>
+            </div>
+            <div class="hud" id="energy-hud">Energy Error: 0.00%</div>
+        </div>
+
+        <div id="analysis-modal" class="analysis-modal hidden" aria-hidden="true">
+            <div class="analysis-panel">
+                <div class="analysis-header">
+                    <h3>Scientific Analysis</h3>
+                    <button id="analysis-close" class="analysis-close">Back</button>
+                </div>
+                <div id="analysis-content" class="analysis-content"></div>
+            </div>
+        </div>
+
+        <!-- Sidebar for Controls -->
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <h1>Simulation Controls</h1>
+            </div>
+            
+            <div class="control-section">
+                <h3>Configurations</h3>
+                <select id="preset-selector">
+                    <option value="figure8">Figure-8 (Stable)</option>
+                    <option value="lagrange">Lagrange Equilateral (Stable)</option>
+                    <option value="euler">Euler Collinear (Unstable)</option>
+                    <option value="pythagorean">Pythagorean (Chaotic)</option>
+                    <option value="random">Random Chaotic</option>
+                    <option value="custom">Custom Parameters</option>
+                </select>
+                <button id="btn-reset" class="btn primary">Reset Scenario</button>
+                <button id="btn-placement-mode" class="btn">Enable Placement Mode</button>
+            </div>
+
+            <div class="control-section">
+                <h3>Playback</h3>
+                <div class="playback-controls">
+                    <button id="btn-play-pause" class="btn">Pause</button>
+                    <button id="btn-snapshot" class="btn">Snapshot</button>
+                </div>
+                <div class="slider-group">
+                    <label for="speed-slider">Simulation Speed: <span id="speed-value">1.0</span>x</label>
+                    <input type="range" id="speed-slider" min="0.1" max="5.0" step="0.1" value="1.0">
+                </div>
+                <div class="slider-group">
+                    <label for="trail-slider">Trail Length: <span id="trail-value">200</span></label>
+                    <input type="range" id="trail-slider" min="0" max="1000" step="10" value="200">
+                </div>
+                <div class="slider-group">
+                    <label for="time-scrub-slider-sidebar">Time Scrub: <span id="time-scrub-value-sidebar">Live</span></label>
+                    <input type="range" id="time-scrub-slider-sidebar" min="0" max="100" step="1" value="100">
+                    <button id="btn-go-live" class="btn">Go Live</button>
+                </div>
+            </div>
+
+            <div class="control-section">
+                <h3>Physics Rules</h3>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="enforce-momentum" checked>
+                    <span>Enforce momentum balance</span>
+                </label>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="soft-collisions" checked>
+                    <span>Soft-body collision handling</span>
+                </label>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="show-conservation" checked>
+                    <span>Show conservation status</span>
+                </label>
+            </div>
+
+            <div class="control-section">
+                <h3>Visualization</h3>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="show-vectors">
+                    <span>Show velocity vectors</span>
+                </label>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="show-grid" checked>
+                    <span>Show coordinate grid</span>
+                </label>
+                <label class="checkbox-row">
+                    <input type="checkbox" id="follow-body">
+                    <span>Follow selected body</span>
+                </label>
+                <label class="select-row" for="follow-body-select">
+                    <span>Follow body</span>
+                    <select id="follow-body-select">
+                        <option value="0">Body 1</option>
+                        <option value="1">Body 2</option>
+                        <option value="2">Body 3</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="control-section">
+                <h3>Snapshots</h3>
+                <div id="snapshot-list" class="snapshot-list"></div>
+            </div>
+
+            <div class="control-section scrollable" id="bodies-container">
+                <!-- Body configuration cards will be injected here via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Template for a Body Card (Hidden) -->
+    <template id="body-card-template">
+        <div class="body-card">
+            <div class="body-header">
+                <span class="color-indicator"></span>
+                <h4 class="body-title">Body</h4>
+            </div>
+            <div class="input-group">
+                <label>Mass (<span class="mass-display">1</span>)</label>
+                <input type="range" class="mass-slider" min="0" max="9" step="0.1" value="0">
+                <input type="number" class="mass-input" min="0.001" step="any" value="1">
+            </div>
+            <div class="grid-inputs">
+                <div class="input-mini">
+                    <label>X</label>
+                    <input type="number" class="pos-x" step="0.1" value="0">
+                </div>
+                <div class="input-mini">
+                    <label>Y</label>
+                    <input type="number" class="pos-y" step="0.1" value="0">
+                </div>
+                <div class="input-mini">
+                    <label>Vx</label>
+                    <input type="number" class="vel-x" step="0.1" value="0">
+                </div>
+                <div class="input-mini">
+                    <label>Vy</label>
+                    <input type="number" class="vel-y" step="0.1" value="0">
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script src="app.js"></script>
+</body>
+</html>
